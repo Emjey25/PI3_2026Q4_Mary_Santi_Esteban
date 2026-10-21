@@ -46,15 +46,15 @@ jobs:
           find src/sincronicas/reportes -mindepth 1 -delete
 
       - name: Ejecutar Semana_1SINC.ipynb
-        working-directory: src/sincronicas
         run: |
-          source ../../.venv/bin/activate
+          source .venv/bin/activate
+          test -f src/sincronicas/Semana_1SINC.ipynb
           jupyter nbconvert \
             --to notebook \
             --execute \
             --inplace \
             --ExecutePreprocessor.timeout=1800 \
-            Semana_1SINC.ipynb
+            src/sincronicas/Semana_1SINC.ipynb
 
       - name: Confirmar cambios generados
         run: |
