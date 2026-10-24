@@ -1,0 +1,52 @@
+REPORTE DEL DATAFRAME
+============================================================
+Filas: 1117674
+Columnas: 16
+Duplicados: 1
+
+Columnas y tipos:
+- year: int64
+- make: object
+- model: object
+- trim: object
+- body: object
+- transmission: object
+- vin: object
+- state: object
+- condition: float64
+- odometer: float64
+- color: object
+- interior: object
+- seller: object
+- mmr: float64
+- sellingprice: float64
+- saledate: object
+
+Valores nulos por columna:
+- year: 0
+- make: 20602
+- model: 20798
+- trim: 21302
+- body: 26390
+- transmission: 130708
+- vin: 4
+- state: 26
+- condition: 23614
+- odometer: 188
+- color: 1498
+- interior: 1498
+- seller: 26
+- mmr: 50
+- sellingprice: 24
+- saledate: 50
+
+Estadísticas numéricas:
+              year    condition     odometer          mmr  sellingprice
+count  1117674.000  1094060.000  1117486.000  1117624.000   1117650.000
+mean      2010.039       17.048    68320.228    13769.375     13611.330
+std          3.967       16.610    53398.277     9679.850      9749.504
+min       1982.000        1.000        1.000       25.000         1.000
+25%       2007.000        3.400    28371.000     7100.000      6900.000
+50%       2012.000        4.600    52254.000    12250.000     12100.000
+75%       2013.000       35.000    99109.000    18300.000     18200.000
+max       2015.000       49.000   999999.000   182000.000    230000.000
