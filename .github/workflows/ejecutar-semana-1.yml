@@ -1,4 +1,4 @@
-name: Sincronizar cambios remotos
+name: Ejecutar Semana 1
 
 on:
   push:
