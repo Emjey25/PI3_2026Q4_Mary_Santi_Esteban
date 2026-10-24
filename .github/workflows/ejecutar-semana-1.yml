@@ -68,9 +68,4 @@ jobs:
           fi
 
           git commit -m "chore: actualizar resultados de Semana 1 [skip ci]"
-
-          # Traer e integrar los cambios más recientes antes de subir, resolviendo
-          # automáticamente conflictos de rebase a favor del commit recién generado.
-          git pull origin main --rebase -X theirs
-          
           git push origin HEAD:main
