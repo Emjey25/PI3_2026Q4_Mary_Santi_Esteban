@@ -1,59 +1,64 @@
-# PI3 - Carga y reporte de datos de arriendos en Colombia
+# PI3 - Análisis de pedidos de e-commerce
 
-Mini proyecto de procesamiento de datos desarrollado en Python. El proyecto
-descarga un dataset de precios de arriendo desde Hugging Face, lo transforma en
-un `pandas.DataFrame`, lo persiste en formato CSV y genera un reporte
-descriptivo con información de calidad y estadísticas numéricas.
+Proyecto en Python para cargar y describir pedidos de comercio electrónico. El
+flujo obtiene los datos desde Hugging Face, los convierte en un
+`pandas.DataFrame`, verifica su calidad y genera un reporte reproducible.
 
-## Objetivos
+## Necesidad y diseño inicial
 
-- Encapsular la descarga de datasets de Hugging Face en una clase reutilizable.
-- Convertir los datos descargados a un `DataFrame` de pandas.
-- Permitir limitar el número de filas y configurar caché o autenticación.
-- Exportar los datos a CSV, JSON, Parquet o Excel.
-- Generar reportes legibles con dimensiones, duplicados, tipos, nulos y
-  estadísticas descriptivas.
-- Automatizar la ejecución del notebook mediante GitHub Actions.
+**Necesidad:** contar con una descripción confiable de los pedidos para
+identificar qué información está disponible sobre productos, clientes, pagos,
+canales y entregas antes de realizar análisis comerciales.
 
-## Resultado actual
+**Pregunta:** ¿qué características tienen los pedidos del dataset y qué
+variables permiten estudiar el comportamiento de compra y la operación de
+entrega?
 
-El notebook trabaja con el dataset
-[`aptologia/precios-arriendo-colombia`](https://huggingface.co/datasets/aptologia/precios-arriendo-colombia),
-en la partición `train`. La ejecución registrada produjo:
+**Objetivo:** cargar el dataset, describir su estructura y calidad, y dejar
+disponible un resumen automático para futuros análisis.
 
-- **1.460 filas**
-- **10 columnas**
-- **0 filas duplicadas**
-- **0 valores nulos**
-- Archivo de datos: `src/sincronicas/datos/precios-arriendo-colombia.csv`
-- Reporte: `src/sincronicas/reportes/precios-arriendo-colombia.txt`
+**Alcance:** esta primera entrega cubre obtención, exploración básica,
+validación de duplicados y valores nulos, exportación a CSV y generación del
+reporte `.txt`. No incluye modelos predictivos ni conclusiones causales.
 
-Los valores de precio (`p25`, `mediana` y `p75`) corresponden al dataset de
-origen y se conservan sin transformaciones adicionales.
+## ¿Qué hace este proyecto?
 
-## Arquitectura y flujo
+- Descarga un dataset desde Hugging Face con `HFDatasetLoader`.
+- Convierte los registros a un `DataFrame` de pandas.
+- Permite guardar los datos en CSV, JSON, Parquet o Excel.
+- Genera un resumen con filas, columnas, duplicados, tipos, nulos y estadísticas numéricas.
+- Puede ejecutarse automáticamente con GitHub Actions.
 
-```mermaid
-flowchart LR
-    A[Hugging Face<br/>aptologia/precios-arriendo-colombia] --> B[HFDatasetLoader]
-    B --> C[Dataset de Hugging Face]
-    C --> D[DataFrame de pandas]
-    D --> E[src/sincronicas/datos/<br/>precios-arriendo-colombia.csv]
-    D --> F[Reportes]
-    F --> G[src/sincronicas/reportes/<br/>precios-arriendo-colombia.txt]
-```
+## Dataset actual
 
-El flujo implementado es:
+El proyecto usa el dataset
+[`millat/e-commerce-orders`](https://huggingface.co/datasets/millat/e-commerce-orders),
+en la partición `train`. La ficha del dataset contiene su descripción, autoría,
+licencia y condiciones de uso; debe consultarse antes de reutilizar los datos
+fuera de este proyecto.
 
-1. El notebook localiza la raíz del repositorio y agrega `src` al `sys.path`.
-2. Se instancia `HFDatasetLoader` con el nombre del dataset, la partición y la
-   ruta de salida.
-3. `load()` llama a `datasets.load_dataset()`.
-4. El dataset se convierte a pandas mediante `to_pandas()`.
-5. Si se configuró `filename`, el `DataFrame` se guarda en el formato indicado
-   o inferido a partir de la extensión.
-6. `Reportes.generar_reporte()` calcula el resumen del `DataFrame`.
-7. `Reportes.guardar_reporte()` escribe el resumen en un archivo de texto.
+Resumen del dataset cargado:
+
+- 10.000 filas
+- 15 columnas
+- 0 registros duplicados
+- 0 valores nulos
+- Precio promedio: 252.55
+- Cantidad promedio por pedido: 2.12
+
+Archivo principal de datos:
+
+- `src/sincronicas/datos/e-commerce-orders.csv`
+- `src/sincronicas/reportes/E-commerce Orders & Customer Behavior.txt`
+
+### Columnas principales
+
+`order_id`, `customer_id`, `product_id`, `category`, `price`, `quantity`, `order_date`, `shipping_date`, `delivery_status`, `payment_method`, `device_type`, `channel`, `shipping_address`, `billing_address`, `customer_segment`.
+
+Cada fila representa un pedido. Las variables de categoría, precio y cantidad
+permiten describir la compra; las fechas y el estado permiten revisar la
+entrega; y el método de pago, dispositivo, canal y segmento permiten explorar
+el comportamiento del cliente.
 
 ## Estructura del repositorio
 
@@ -61,84 +66,21 @@ El flujo implementado es:
 .
 ├── .github/
 │   └── workflows/
-│       └── ejecutar-semana-1.yml       # Automatización en GitHub Actions
-├── requirements.txt                    # Dependencias de Python
+│       └── ejecutar-semana-1.yml
+├── requirements.txt
 ├── src/
 │   ├── clases_po/
-│   │   ├── __init__.py                 # API pública del paquete
-│   │   ├── hf_loader.py                # Carga y exportación de datasets
-│   │   └── reportes.py                 # Generación de reportes
+│   │   ├── __init__.py
+│   │   ├── hf_loader.py
+│   │   └── reportes.py
 │   └── sincronicas/
-│       ├── Semana_1SINC.ipynb          # Flujo ejecutable/documentado
-│       ├── datos/                      # Datos exportados
-│       └── reportes/                   # Reportes generados
+│       ├── Semana_1SINC.ipynb
+│       ├── datos/
+│       └── reportes/
 └── README.md
 ```
 
-## Componentes principales
-
-### `HFDatasetLoader`
-
-Se encuentra en `src/clases_po/hf_loader.py`. Sus responsabilidades son:
-
-- Descargar una partición de un dataset de Hugging Face.
-- Aceptar `config`, `token` y `cache_dir` para datasets configurables,
-  privados o con caché personalizada.
-- Limitar filas mediante `max_rows`.
-- Mantener el último resultado en `loader.df`.
-- Guardar el resultado en `csv`, `json`, `parquet` o `xlsx`.
-- Validar valores inválidos de `max_rows` y formatos de archivo.
-
-### `Reportes`
-
-Se encuentra en `src/clases_po/reportes.py`. Ofrece:
-
-- `generar_reporte(df)`: devuelve el reporte como `str`.
-- `imprimir_reporte(df)`: imprime el reporte en consola.
-- `guardar_reporte(df, ruta)`: crea las carpetas necesarias y guarda el
-  reporte en UTF-8.
-
-El reporte incluye:
-
-- Número de filas y columnas.
-- Cantidad de registros duplicados.
-- Tipo de cada columna.
-- Valores nulos por columna.
-- `describe()` de las columnas numéricas, redondeado a tres decimales.
-
-## Esquema de datos
-
-El CSV generado contiene las siguientes columnas:
-
-| Columna | Descripción |
-| --- | --- |
-| `fecha` | Fecha de referencia del registro. |
-| `ciudad_id` | Identificador textual de la ciudad. |
-| `ciudad` | Nombre de la ciudad. |
-| `barrio` | Barrio o zona de la ciudad. |
-| `avisos` | Cantidad de avisos considerados. |
-| `p25` | Percentil 25 del precio de arriendo. |
-| `mediana` | Precio mediano de arriendo. |
-| `p75` | Percentil 75 del precio de arriendo. |
-| `con_parqueadero` | Cantidad de avisos con parqueadero. |
-| `con_telefono` | Cantidad de avisos con teléfono. |
-
-Los campos de precios y conteos son numéricos. `fecha`, `ciudad_id`, `ciudad` y
-`barrio` se cargan como columnas de texto en el flujo actual.
-
-## Requisitos
-
-- Python 3.12 o una versión compatible con las dependencias del proyecto.
-- `pip`.
-- Acceso a internet para descargar el dataset de Hugging Face en la primera
-  ejecución.
-
-La automatización oficial usa Python 3.12, crea un entorno virtual e instala
-las dependencias desde `requirements.txt`.
-
-## Instalación local
-
-Desde la raíz del repositorio:
+## Uso rápido
 
 ```bash
 python3.12 -m venv .venv
@@ -147,28 +89,9 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-En Windows PowerShell:
-
-```powershell
-py -3.12 -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
-Para exportar específicamente a Parquet o Excel también se necesitan los
-motores correspondientes:
+Luego se puede ejecutar el notebook desde la carpeta `src/sincronicas`.
 
 ```bash
-python -m pip install pyarrow openpyxl
-```
-
-## Ejecución del notebook
-
-El flujo completo se puede ejecutar desde la raíz con:
-
-```bash
-source .venv/bin/activate
 cd src/sincronicas
 jupyter nbconvert \
   --to notebook \
@@ -178,151 +101,15 @@ jupyter nbconvert \
   Semana_1SINC.ipynb
 ```
 
-También se puede abrir el notebook en Jupyter:
+La ejecución actualiza el CSV y el reporte publicado en
+`src/sincronicas/reportes/E-commerce Orders & Customer Behavior.txt`.
 
-```bash
-jupyter notebook src/sincronicas/Semana_1SINC.ipynb
-```
+## Requisitos
 
-Las rutas relativas del notebook apuntan al directorio de trabajo
-`src/sincronicas`, por lo que el comando anterior conserva la estructura
-esperada de salidas. Al finalizar, se actualizan:
+- Python 3.12
+- `pip`
+- Conexión a internet para descargar el dataset inicial
 
-```text
-src/sincronicas/datos/precios-arriendo-colombia.csv
-src/sincronicas/reportes/precios-arriendo-colombia.txt
-```
+## Descripción corta del proyecto
 
-## Uso de las clases
-
-Para reutilizar el cargador desde otro script:
-
-```python
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path("src").resolve()))
-
-from clases_po import HFDatasetLoader, Reportes
-
-loader = HFDatasetLoader(
-    dataset_name="aptologia/precios-arriendo-colombia",
-    split="train",
-    max_rows=100,
-    filename="salidas/arriendos.csv",
-)
-
-df = loader.load()
-print(loader.info())
-
-reportes = Reportes()
-reportes.imprimir_reporte(df)
-reportes.guardar_reporte(df, "salidas/arriendos.txt")
-```
-
-### Formatos de exportación
-
-El tipo de archivo se puede indicar explícitamente:
-
-```python
-loader = HFDatasetLoader(
-    dataset_name="aptologia/precios-arriendo-colombia",
-    filename="salidas/arriendos.parquet",
-    file_type="parquet",
-)
-```
-
-Si no se indica `file_type`, se infiere desde la extensión de `filename`.
-También se acepta `excel` como alias de `xlsx`.
-
-### Dataset privado o caché personalizada
-
-No es necesario un token para el dataset público usado actualmente. Para un
-dataset privado, se puede entregar el token directamente o usar el mecanismo
-de autenticación recomendado por Hugging Face:
-
-```python
-loader = HFDatasetLoader(
-    dataset_name="organizacion/dataset-privado",
-    token="hf_...",
-    cache_dir=".cache/huggingface",
-)
-```
-
-No se deben incluir tokens en el código versionado. Es preferible usar una
-variable de entorno y pasar su valor al constructor.
-
-## Automatización con GitHub Actions
-
-El workflow `.github/workflows/ejecutar-semana-1.yml` se ejecuta en cada `push`
-a `main` y realiza el siguiente proceso:
-
-```mermaid
-sequenceDiagram
-    participant Git as GitHub
-    participant CI as GitHub Actions
-    participant HF as Hugging Face
-    participant Repo as Repositorio
-
-    Git->>CI: Push a main
-    CI->>CI: Configura Python 3.12 y entorno virtual
-    CI->>CI: Instala requirements.txt, pyarrow y openpyxl
-    CI->>Repo: Limpia datos y reportes anteriores
-    CI->>HF: Ejecuta el notebook y descarga el dataset
-    HF-->>CI: Dataset train
-    CI->>Repo: Genera CSV, reporte y salidas del notebook
-    CI->>Git: Commit de resultados si hubo cambios
-    Git-->>Git: Push automático a main
-```
-
-El workflow utiliza caché de pip y fija un timeout de 30 minutos para la
-ejecución del notebook. Si no se producen cambios, no crea un commit vacío.
-
-## Solución de problemas
-
-### No se puede descargar el dataset
-
-Verifica la conexión a internet y que el identificador del dataset y la
-partición sean correctos. Para datasets privados, configura un token válido.
-
-### Error al guardar Parquet o Excel
-
-Instala los motores opcionales:
-
-```bash
-python -m pip install pyarrow openpyxl
-```
-
-### `ModuleNotFoundError: clases_po`
-
-Ejecuta el notebook desde el repositorio o agrega `src` al `PYTHONPATH`:
-
-```bash
-export PYTHONPATH="$PWD/src:$PYTHONPATH"
-```
-
-El notebook ya realiza esta configuración automáticamente al buscar la raíz
-del repositorio.
-
-### `RuntimeError: Llama a load() primero`
-
-`Reportes` necesita un `DataFrame` válido. Primero ejecuta
-`df = loader.load()` y luego genera o guarda el reporte.
-
-## Alcance y posibles ampliaciones
-
-Este mini proyecto se centra en ingestión, persistencia y descripción básica;
-no realiza todavía limpieza avanzada, visualizaciones, modelado predictivo ni
-una API web. Como siguientes pasos se podrían añadir:
-
-- pruebas automatizadas para el cargador y los reportes;
-- validación de esquema y tipos de fecha;
-- análisis exploratorio y gráficos;
-- configuración externa del dataset y de las rutas de salida;
-- gestión de versiones o archivos de bloqueo de dependencias.
-
-## Licencia
-
-No se ha definido una licencia de distribución para este repositorio. El uso
-del dataset está sujeto a la licencia y condiciones publicadas por su autor en
-Hugging Face.
+Este repositorio muestra un flujo básico de análisis de datos para e-commerce: descarga del dataset, transformación a formato tabular, validación de calidad y generación de reportes. Está pensado como base para explorar ventas, comportamiento del cliente, canales de adquisición y métricas de pedidos.
