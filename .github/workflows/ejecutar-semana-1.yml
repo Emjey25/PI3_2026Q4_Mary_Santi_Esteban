@@ -42,8 +42,8 @@ jobs:
       - name: Limpiar datos y reportes generados
         run: |
           mkdir -p src/sincronicas/datos src/sincronicas/reportes
-          find src/sincronicas/datos -mindepth 1 -delete
-          find src/sincronicas/reportes -mindepth 1 -delete
+          find src/sincronicas/datos -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;
+          find src/sincronicas/reportes -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;
 
       - name: Ejecutar Semana_1SINC.ipynb
         working-directory: src/sincronicas
