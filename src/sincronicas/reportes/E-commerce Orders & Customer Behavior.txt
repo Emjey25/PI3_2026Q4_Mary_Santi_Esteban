@@ -5,21 +5,21 @@ Columnas: 15
 Duplicados: 0
 
 Columnas y tipos:
-- order_id: object
+- order_id: str
 - customer_id: int64
 - product_id: int64
-- category: object
+- category: str
 - price: float64
 - quantity: int64
-- order_date: object
-- shipping_date: object
-- delivery_status: object
-- payment_method: object
-- device_type: object
-- channel: object
-- shipping_address: object
-- billing_address: object
-- customer_segment: object
+- order_date: str
+- shipping_date: str
+- delivery_status: str
+- payment_method: str
+- device_type: str
+- channel: str
+- shipping_address: str
+- billing_address: str
+- customer_segment: str
 
 Valores nulos por columna:
 - order_id: 0
