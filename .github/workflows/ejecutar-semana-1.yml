@@ -1,4 +1,4 @@
-name: Ejecutar Semana 1
+name: Ejecutar Semana 4
 
 on:
   push:
@@ -45,7 +45,7 @@ jobs:
           find src/sincronicas/datos -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;
           find src/sincronicas/reportes -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;
 
-      - name: Ejecutar Semana_1SINC.ipynb
+      - name: Ejecutar Semana_4SINC.ipynb
         working-directory: src/sincronicas
         run: |
           source ../../.venv/bin/activate
