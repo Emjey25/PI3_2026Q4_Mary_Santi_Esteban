@@ -25,12 +25,26 @@ class GraficosBase:
                 "axes.axisbelow": True,
             })
 
+    @staticmethod
+    def _etiquetar_barras(ax, fmt="{:,.0f}", porcentaje=False):
+        for barra in ax.patches:
+            valor = barra.get_width() if barra.get_width() != 0 else barra.get_height()
+            texto = f"{valor:.1%}" if porcentaje else fmt.format(valor)
+            if barra.get_width() >= barra.get_height():
+                ax.annotate(texto, (barra.get_width(), barra.get_y() + barra.get_height() / 2),
+                            xytext=(4, 0), textcoords="offset points", va="center", fontsize=8)
+            else:
+                ax.annotate(texto, (barra.get_x() + barra.get_width() / 2, barra.get_height()),
+                            xytext=(0, 4), textcoords="offset points", ha="center", fontsize=8)
+
     def ventas_por_dia(self):
         t = self.A.ventas_por_dia()
         fig, ax = plt.subplots()
         ax.plot(t.index, t["ventas"], color=self.COLOR)
         ax.yaxis.set_major_formatter(self.dinero)
-        ax.set_title("Ventas por día")
+        ax.set_title("Ventas diarias del comercio electrónico")
+        ax.set_ylabel("Valor vendido ($)")
+        ax.set_xlabel("Fecha del pedido")
         fig.autofmt_xdate()
         plt.tight_layout()
         plt.show()
@@ -40,7 +54,9 @@ class GraficosBase:
         fig, ax = plt.subplots()
         ax.bar(t.index, t["venta promedio por día"], color=self.COLOR)
         ax.yaxis.set_major_formatter(self.dinero)
-        ax.set_title("Venta promedio por día de la semana")
+        ax.set_title("Valor vendido promedio por día de la semana")
+        ax.set_ylabel("Venta promedio ($)")
+        ax.set_xlabel("Día de la semana")
         plt.tight_layout()
         plt.show()
 
@@ -49,35 +65,59 @@ class GraficosBase:
         fig, ax = plt.subplots()
         ax.barh(t.index.astype(str), t["ventas"], color=self.COLOR)
         ax.xaxis.set_major_formatter(self.dinero)
-        ax.set_title("Ventas por categoría")
+        ax.set_title("Categorías con mayor valor vendido")
+        ax.set_xlabel("Valor vendido ($)")
+        ax.set_ylabel("Categoría")
+        self._etiquetar_barras(ax)
+        plt.tight_layout()
+        plt.show()
+
+    def dispositivos(self):
+        t = self.A.frecuencias("device_type").drop("Total")
+        fig, ax = plt.subplots()
+        ax.bar(t.index.astype(str), t["productos"], color=self.COLOR)
+        ax.set_title("Unidades vendidas por dispositivo de compra")
+        ax.set_ylabel("Unidades vendidas")
+        ax.set_xlabel("Dispositivo")
+        self._etiquetar_barras(ax, fmt="{:,.0f}")
         plt.tight_layout()
         plt.show()
 
     def tamanos(self):
-        t = self.A.frecuencias("device_type").drop("Total")
-        fig, ax = plt.subplots()
-        ax.bar(t.index.astype(str), t["productos"], color=self.COLOR)
-        ax.set_title("Unidades por dispositivo")
+        """Alias de compatibilidad para notebooks anteriores."""
+        self.dispositivos()
+
+    def dispositivo_y_categoria(self):
+        self.categoria_dispositivo()
+
+    def categoria_dispositivo(self):
+        t = self.A.categoria_x_dispositivo("ventas").drop(index="Total", columns="ventas Total")
+        t.columns = [str(c).replace("ventas ", "") for c in t.columns]
+        ax = t.plot(kind="bar", figsize=(10, 4), color=[self.COLOR, self.ACENTO, "#55a868"])
+        ax.set_title("Valor vendido por categoría y dispositivo")
+        ax.set_ylabel("Valor vendido ($)")
+        ax.set_xlabel("Categoría")
+        ax.yaxis.set_major_formatter(self.dinero)
+        ax.legend(title="Dispositivo")
         plt.tight_layout()
         plt.show()
 
     def tamano_y_categoria(self):
-        self.categoria_tamano()
+        """Alias de compatibilidad para notebooks anteriores."""
+        self.categoria_dispositivo()
 
     def categoria_tamano(self):
-        t = self.A.categoria_x_dispositivo("ventas").drop(index="Total", columns="ventas Total")
-        t.columns = [str(c).replace("ventas ", "") for c in t.columns]
-        t.plot(kind="bar", figsize=(10, 4), color=self.COLOR)
-        plt.title("Ventas por categoría y dispositivo")
-        plt.tight_layout()
-        plt.show()
+        """Alias de compatibilidad para notebooks anteriores."""
+        self.categoria_dispositivo()
 
     def ventas_hora(self):
         t = self.A.ventas_por_hora()
         fig, ax = plt.subplots()
         ax.bar(t.index, t["ventas"], color=self.COLOR)
         ax.yaxis.set_major_formatter(self.dinero)
-        ax.set_title("Ventas por hora")
+        ax.set_title("Valor vendido según la hora del pedido")
+        ax.set_ylabel("Valor vendido ($)")
+        ax.set_xlabel("Hora del día")
         plt.tight_layout()
         plt.show()
 
@@ -86,17 +126,24 @@ class GraficosBase:
         fig, ax = plt.subplots(figsize=(10, 5))
         ax.barh(t.index.astype(str), t["ventas"], color=self.COLOR)
         ax.xaxis.set_major_formatter(self.dinero)
-        ax.set_title(f"Top {n} productos por ventas")
+        ax.set_title(f"Top {n} productos por valor vendido")
+        ax.set_xlabel("Valor vendido ($)")
+        ax.set_ylabel("Identificador del producto")
+        self._etiquetar_barras(ax)
         plt.tight_layout()
         plt.show()
 
     def histogramas(self):
         fig, axes = plt.subplots(1, 2, figsize=(12, 4))
         axes[0].hist(self.A.V["price"], bins=20, color=self.COLOR)
-        axes[0].set_title("Distribución de precios")
+        axes[0].set_title("Distribución del precio unitario")
+        axes[0].set_xlabel("Precio unitario ($)")
+        axes[0].set_ylabel("Cantidad de líneas")
         axes[1].hist(self.A.pedidos["valor_pedido"], bins=20, color=self.ACENTO)
         axes[1].xaxis.set_major_formatter(self.dinero)
-        axes[1].set_title("Distribución del valor del pedido")
+        axes[1].set_title("Distribución del valor total del pedido")
+        axes[1].set_xlabel("Valor del pedido ($)")
+        axes[1].set_ylabel("Cantidad de pedidos")
         plt.tight_layout()
         plt.show()
 
@@ -119,8 +166,12 @@ class GraficosBase:
         )
         axes[0, 0].set_title("Ventas por fecha")
         axes[0, 1].set_title("Ventas por hora")
-        axes[1, 0].set_title("Top 5 productos")
+        axes[1, 0].set_title("Top 5 productos por valor")
         axes[1, 1].set_title("Ventas por categoría")
+        axes[0, 0].set_ylabel("Valor vendido ($)")
+        axes[0, 1].set_ylabel("Valor vendido ($)")
+        axes[1, 0].set_xlabel("Valor vendido ($)")
+        axes[1, 1].set_ylabel("Valor vendido ($)")
         for ax in axes.flat:
             ax.yaxis.set_major_formatter(self.dinero)
         plt.tight_layout()
@@ -136,7 +187,10 @@ class GraficosEcommerce(GraficosBase):
         fig, ax = plt.subplots()
         ax.barh(t.index.astype(str), t["ventas"], color=self.COLOR)
         ax.xaxis.set_major_formatter(self.dinero)
-        ax.set_title("Ventas por canal")
+        ax.set_title("Valor vendido por canal de adquisición")
+        ax.set_xlabel("Valor vendido ($)")
+        ax.set_ylabel("Canal")
+        self._etiquetar_barras(ax)
         plt.tight_layout()
         plt.show()
 
@@ -145,7 +199,10 @@ class GraficosEcommerce(GraficosBase):
         fig, ax = plt.subplots()
         ax.barh(t.index.astype(str), t["ventas"], color=self.COLOR)
         ax.xaxis.set_major_formatter(self.dinero)
-        ax.set_title("Ventas por segmento de cliente")
+        ax.set_title("Valor vendido por segmento de cliente")
+        ax.set_xlabel("Valor vendido ($)")
+        ax.set_ylabel("Segmento")
+        self._etiquetar_barras(ax)
         plt.tight_layout()
         plt.show()
 
@@ -153,6 +210,9 @@ class GraficosEcommerce(GraficosBase):
         t = self.A.estado_entregas().sort_values("pedidos")
         fig, ax = plt.subplots()
         ax.bar(t.index.astype(str), t["pedidos"], color=self.ACENTO)
-        ax.set_title("Pedidos por estado de entrega")
+        ax.set_title("Pedidos según estado de entrega")
+        ax.set_ylabel("Cantidad de pedidos")
+        ax.set_xlabel("Estado de entrega")
+        self._etiquetar_barras(ax, fmt="{:,.0f}")
         plt.tight_layout()
         plt.show()
