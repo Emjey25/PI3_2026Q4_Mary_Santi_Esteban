@@ -301,7 +301,7 @@ class AnalisisBase:
     def consulta(self, fecha="2024-04-20", categoria="Electronics", dispositivo="Mobile", canal="Todos") -> pd.Series:
         """SUMAR.SI.CONJUNTO con varias condiciones ("Todas"/"Todos" ignora la condición)."""
         d = self.filtrar(canal, categoria, dispositivo)
-        d = d[d["order_date"] == pd.Timestamp(fecha)]
+        d = d[d["order_date"].dt.normalize() == pd.Timestamp(fecha).normalize()]
         return pd.Series({"Ventas": round(d["order_value"].sum(), 2), "Unidades": int(d["quantity"].sum()),
                           "Líneas": len(d),
                           "Precio promedio": round(d["price"].mean(), 2) if len(d) else "No hubo ventas"})
@@ -465,3 +465,78 @@ class AnalisisEcommerce(AnalisisBase):
             "Entregas": self.resumen_entregas(),
             "Clientes": self.resumen_customers(),
         }
+
+    # ================================================================== soporte del dashboard (Semana 6)
+    SEGMENTOS_FRECUENCIA = ["Ocasional (1)", "Regular (2-3)", "Frecuente (4-5)", "Muy frecuente (6+)"]
+
+    def ventas_diarias_canal(self) -> pd.DataFrame:
+        """Ventas por fecha (filas) y canal (columnas)."""
+        t = self.V.pivot_table(index=self.V["order_date"].dt.normalize(), columns="channel",
+                               values="order_value", aggfunc="sum", observed=True).fillna(0)
+        t.index.name = "fecha"
+        t.columns = t.columns.astype(str)
+        return t
+
+    def dia_semana_canal(self) -> pd.DataFrame:
+        """Venta PROMEDIO por día de la semana (columnas) en cada canal (filas)."""
+        t = self.ventas_diarias_canal()
+        t = t.groupby(t.index.dayofweek).mean().T
+        t.columns = [DIAS_SEMANA[i] for i in t.columns]
+        return t
+
+    def ventas_mensuales(self) -> pd.DataFrame:
+        """Ventas por mes y si el mes está completo (el primero y el último suelen venir cortados)."""
+        d = self.V
+        fecha = d["order_date"].dt.normalize()
+        m = d.groupby(d["order_date"].dt.to_period("M")).agg(ventas=("order_value", "sum"))
+        m["dias"] = fecha.groupby(d["order_date"].dt.to_period("M")).nunique()
+        m["dias_del_mes"] = [p.days_in_month for p in m.index]
+        m["completo"] = m["dias"] == m["dias_del_mes"]
+        return m
+
+    def mix_canal(self, columna: str = "category") -> pd.DataFrame:
+        """% de las ventas de cada canal (filas) repartido por ``columna`` (columnas)."""
+        t = pd.crosstab(self.V["channel"], self.V[columna], values=self.V["order_value"],
+                        aggfunc="sum", normalize="index")
+        t.index, t.columns = t.index.astype(str), t.columns.astype(str)
+        return t
+
+    def clientes_detalle(self) -> pd.DataFrame:
+        """Una fila por cliente: pedidos, unidades, ventas y segmento de frecuencia."""
+        c = (self.V.groupby("customer_id")
+             .agg(pedidos=("order_id", "nunique"), unidades=("quantity", "sum"),
+                  ventas=("order_value", "sum"), segmento_cliente=("customer_segment", "first")))
+        c["ticket_promedio"] = c["ventas"] / c["pedidos"]
+        c["segmento"] = pd.cut(c["pedidos"], [0, 1, 3, 5, np.inf], labels=self.SEGMENTOS_FRECUENCIA)
+        return c.reset_index()
+
+    @staticmethod
+    def pareto_20(clientes: pd.DataFrame) -> float:
+        """Parte de las ventas que aporta el 20 % de mejores clientes."""
+        v = clientes["ventas"].sort_values(ascending=False).to_numpy()
+        n = max(1, int(round(len(v) * 0.2)))
+        return float(v[:n].sum() / v.sum())
+
+    def top_clientes(self, n: int = 10) -> pd.DataFrame:
+        return self.clientes_detalle().sort_values("ventas", ascending=False).head(n)
+
+    def entregas_canal(self) -> pd.DataFrame:
+        """% de pedidos de cada canal (filas) según su estado de entrega (columnas)."""
+        t = pd.crosstab(self.V["channel"], self.V["delivery_status"], normalize="index")
+        t.index = t.index.astype(str)
+        return t.reindex(columns=[c for c in ["Delivered", "Shipped", "Pending", "Returned"] if c in t.columns])
+
+    @staticmethod
+    def extraer_estado(direccion: pd.Series) -> pd.Series:
+        """Estado de EE. UU. de una dirección tipo ``calle, ciudad, Estado 12345``."""
+        return direccion.astype("string").str.extract(r",\s*([^,]+?)\s+\d{5}(?:-\d{4})?\s*$")[0]
+
+    def ventas_por_estado(self) -> pd.DataFrame:
+        """Ventas, pedidos y ticket por estado de envío (columna ``estado`` o dirección de envío)."""
+        d = self.V
+        estado = d["estado"] if "estado" in d.columns else self.extraer_estado(d["shipping_address"])
+        t = (d.assign(estado=estado).groupby("estado")
+             .agg(pedidos=("order_id", "nunique"), ventas=("order_value", "sum"),
+                  ticket_promedio=("order_value", "mean")))
+        t["% ventas"] = t["ventas"] / t["ventas"].sum()
+        return t.sort_values("ventas", ascending=False)
